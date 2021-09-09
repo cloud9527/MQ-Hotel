@@ -48,6 +48,12 @@ public class OrderEventInformManagerImpl implements OrderEventInformManager {
         this.sendOrderMessage(MessageTypeEnum.WX_CREATE_ORDER, orderInfoDTO);
     }
 
+    @Override
+    public void informCancelOrderEvent(OrderInfoDTO orderInfoDTO) {
+        this.sendOrderMessage(MessageTypeEnum.WX_CANCEL_ORDER,
+                orderInfoDTO);
+    }
+
     /**
      * 发送订单消息
      *
