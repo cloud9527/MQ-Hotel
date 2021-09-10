@@ -82,6 +82,13 @@ public class OrderEventInformManagerImpl implements OrderEventInformManager {
                 orderInfoDTO);
     }
 
+    @Override
+    public void informOrderFinishEvent(OrderInfoDTO orderInfoDTO) {
+        this.sendOrderMessage(MessageTypeEnum.WX_FINISHED_ORDER,
+                orderInfoDTO);
+    }
+
+
 
     private void sendOrderDelayMessage(OrderInfoDTO orderInfoDTO) {
         Message message = new Message();

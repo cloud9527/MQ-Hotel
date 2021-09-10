@@ -49,4 +49,12 @@ public interface OrderService {
      */
     void informConfirmOrder(String orderNo, String phoneNumber);
 
+    /**
+     * 退房订单
+     *
+     * @param orderNo     订单号
+     * @param phoneNumber 手机号
+     */
+    void informFinishedOrder(String orderNo, String phoneNumber);
+
 }

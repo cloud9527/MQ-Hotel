@@ -24,4 +24,11 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         return CommonResponse.success();
     }
 
+    @Override
+    public CommonResponse finishedOrder(String orderNo, String phoneNumber) {
+        // TODO 正常调用订单服务的dubbo接口或者操作数据库
+        orderService.informFinishedOrder(orderNo, phoneNumber);
+        return CommonResponse.success();
+    }
+
 }

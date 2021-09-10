@@ -38,6 +38,11 @@ public interface OrderEventInformManager {
      */
     void informConfirmOrderEvent(OrderInfoDTO orderInfoDTO);
 
-
+    /**
+     * 订单退房完成 订单已结束事件
+     *
+     * @param orderInfoDTO 订单信息
+     */
+    void informOrderFinishEvent(OrderInfoDTO orderInfoDTO);
 
 }
