@@ -70,6 +70,15 @@ public class OrderEventInformManagerImpl implements OrderEventInformManager {
                 orderInfoDTO);
     }
 
+    @Override
+    public void informPayOrderEvent(OrderInfoDTO orderInfoDTO) {
+        this.sendOrderMessage(MessageTypeEnum.WX_PAY_ORDER,
+                orderInfoDTO);
+    }
+
+
+
+
     private void sendOrderDelayMessage(OrderInfoDTO orderInfoDTO) {
         Message message = new Message();
         message.setTopic(orderDelayTopic);

@@ -23,4 +23,12 @@ public interface OrderEventInformManager {
      * @param orderInfoDTO 订单信息
      */
     void informCancelOrderEvent(OrderInfoDTO orderInfoDTO);
+
+    /**
+     * 通知订单支付事件
+     *
+     * @param orderInfoDTO 订单信息
+     */
+    void informPayOrderEvent(OrderInfoDTO orderInfoDTO);
+
 }
