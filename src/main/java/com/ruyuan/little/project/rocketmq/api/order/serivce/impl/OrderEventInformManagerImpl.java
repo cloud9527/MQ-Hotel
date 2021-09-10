@@ -76,7 +76,11 @@ public class OrderEventInformManagerImpl implements OrderEventInformManager {
                 orderInfoDTO);
     }
 
-
+    @Override
+    public void informConfirmOrderEvent(OrderInfoDTO orderInfoDTO) {
+        this.sendOrderMessage(MessageTypeEnum.WX_CONFIRM_ORDER,
+                orderInfoDTO);
+    }
 
 
     private void sendOrderDelayMessage(OrderInfoDTO orderInfoDTO) {
