@@ -30,4 +30,9 @@ public class RedisKeyConstant {
      * 订单重复支付
      */
     public static final String ORDER_DUPLICATION_KEY_PREFIX = "little:project:payOrderDuplication:";
+
+    /**
+     * 完成订单后重复消费 保证幂等key前缀
+     */
+    public static final String ORDER_FINISHED_DUPLICATION_KEY_PREFIX = "little:project:orderFinishedDuplication:";
 }

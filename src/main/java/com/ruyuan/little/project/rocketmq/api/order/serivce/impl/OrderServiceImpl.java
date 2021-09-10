@@ -20,14 +20,18 @@ import com.ruyuan.little.project.rocketmq.api.order.serivce.OrderService;
 import com.ruyuan.little.project.rocketmq.common.constants.StringPoolConstant;
 import com.ruyuan.little.project.rocketmq.common.exception.BusinessException;
 import org.apache.dubbo.config.annotation.Reference;
+import org.apache.rocketmq.client.producer.TransactionMQProducer;
+import org.apache.rocketmq.common.message.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -94,7 +98,15 @@ public class OrderServiceImpl implements OrderService {
     @Value("${order.finished.coupon.day}")
     private Integer orderFinishedCouponDay;
 
+    /**
+     * 完成定时事务消息topic
+     */
+    @Value("${rocketmq.order.finished.topic}")
+    private String orderFinishedTopic;
 
+    @Autowired
+    @Qualifier(value = "orderFinishedTransactionMqProducer")
+    private TransactionMQProducer orderFinishedTransactionMqProducer;
 
     @Override
     public CommonResponse<CreateOrderResponseDTO> createOrder(OrderInfoDTO orderInfoDTO) {
@@ -130,7 +142,6 @@ public class OrderServiceImpl implements OrderService {
     }
 
 
-
     /**
      * 保存订单商品数据
      *
@@ -141,31 +152,31 @@ public class OrderServiceImpl implements OrderService {
         String phoneNumber = orderInfoDTO.getPhoneNumber();
         MysqlRequestDTO mysqlRequestDTO = new MysqlRequestDTO();
         mysqlRequestDTO.setSql("insert into "
-                                       + " t_shop_order_goods"
-                                       + "("
-                                       + "thumb, "
-                                       + "beid, "
-                                       + "orderid, "
-                                       + "goodsId, "
-                                       + "title, "
-                                       + "price, "
-                                       + "total, "
-                                       + "order_dates, "
-                                       + "description, "
-                                       + "createtime "
-                                       + ")"
-                                       + "values( "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "? "
-                                       + ")");
+                + " t_shop_order_goods"
+                + "("
+                + "thumb, "
+                + "beid, "
+                + "orderid, "
+                + "goodsId, "
+                + "title, "
+                + "price, "
+                + "total, "
+                + "order_dates, "
+                + "description, "
+                + "createtime "
+                + ")"
+                + "values( "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "? "
+                + ")");
         List<Object> params = new ArrayList<>();
         params.add(orderItemDTO.getThumb());
         params.add(orderItemDTO.getBeid());
@@ -212,41 +223,41 @@ public class OrderServiceImpl implements OrderService {
 
         MysqlRequestDTO mysqlRequestDTO = new MysqlRequestDTO();
         mysqlRequestDTO.setSql("insert into "
-                                       + " t_shop_order"
-                                       + "("
-                                       + "beid, "
-                                       + "openid, "
-                                       + "ordersn, "
-                                       + "price, "
-                                       + "status, "
-                                       + "remark, "
-                                       + "address_realname, "
-                                       + "address_mobile, "
-                                       + "desk_num, "
-                                       + "goods_total_price, "
-                                       + "createtime, "
-                                       + "updatetime, "
-                                       + "coupon_id, "
-                                       + "coupon_money, "
-                                       + "uid "
-                                       + ") "
-                                       + "values( "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?, "
-                                       + "?"
-                                       + ")");
+                + " t_shop_order"
+                + "("
+                + "beid, "
+                + "openid, "
+                + "ordersn, "
+                + "price, "
+                + "status, "
+                + "remark, "
+                + "address_realname, "
+                + "address_mobile, "
+                + "desk_num, "
+                + "goods_total_price, "
+                + "createtime, "
+                + "updatetime, "
+                + "coupon_id, "
+                + "coupon_money, "
+                + "uid "
+                + ") "
+                + "values( "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?, "
+                + "?"
+                + ")");
         ArrayList<Object> params = new ArrayList<>();
         params.add(orderInfoDTO.getBeid());
         params.add(orderInfoDTO.getOpenId());
@@ -297,33 +308,45 @@ public class OrderServiceImpl implements OrderService {
     }
 
 
-
     @Override
     public void informFinishedOrder(String orderNo, String phoneNumber) {
         // 订单信息
         OrderInfoDTO orderInfoDTO = this.getOrderInfo(orderNo, phoneNumber);
-
+        Message message = new Message(orderFinishedTopic, JSON.toJSONString(orderInfoDTO).getBytes(StandardCharsets.UTF_8));
         try {
-            // 修改订单的状态
-            this.updateOrderStatus(orderNo, OrderStatusEnum.FINISHED, phoneNumber);
-
-            // 下发优惠券
-            couponService.distributeCoupon(orderInfoDTO.getBeid(),
-                    orderInfoDTO.getUserId(),
-                    orderFinishedCouponId,
-                    orderFinishedCouponDay,
-                    orderInfoDTO.getId(),
-                    phoneNumber);
-
-            // 发送确认通知
-            orderEventInformManager.informOrderFinishEvent(orderInfoDTO);
-
+            orderFinishedTransactionMqProducer.sendMessageInTransaction(message,null);
         } catch (Exception e) {
-            // TODO  保证主要权益的发放需要重试
-            LOGGER.info("finished order fail orderNo:{}", orderNo);
+            LOGGER.info("finished order send half message fail error:{}", e);
         }
 
     }
+
+    /**
+     * 查询订单状态
+     *
+     * @param orderNo     订单号
+     * @param phoneNumber 手机号
+     * @return 订单状态
+     */
+    @Override
+    public Integer getOrderStatus(String orderNo, String phoneNumber) {
+        MysqlRequestDTO mysqlRequestDTO = new MysqlRequestDTO();
+        mysqlRequestDTO.setSql("select status from  t_shop_order where ordersn = ?");
+        List<Object> params = new ArrayList<>();
+        params.add(orderNo);
+        mysqlRequestDTO.setParams(params);
+        mysqlRequestDTO.setPhoneNumber(phoneNumber);
+        mysqlRequestDTO.setProjectTypeEnum(LittleProjectTypeEnum.ROCKETMQ);
+
+        LOGGER.info("start select order status param:{}", JSON.toJSONString(params));
+        CommonResponse<Integer> response = mysqlApi.update(mysqlRequestDTO);
+        LOGGER.info("end select order status param:{}, response:{}", JSON.toJSONString(params), JSON.toJSONString(response));
+        if (Objects.equals(response.getCode(), ErrorCodeEnum.SUCCESS.getCode())) {
+            return response.getData();
+        }
+        return null;
+    }
+
 
     /**
      * 根据房间信息构建订单商品信息
@@ -570,6 +593,7 @@ public class OrderServiceImpl implements OrderService {
      * @param orderStatusEnum 订单状态
      * @param phoneNumber     手机号
      */
+    @Override
     public void updateOrderStatus(String orderNo, OrderStatusEnum orderStatusEnum, String phoneNumber) {
         MysqlRequestDTO mysqlRequestDTO = new MysqlRequestDTO();
         mysqlRequestDTO.setSql("update t_shop_order set status = ? where ordersn = ?");
